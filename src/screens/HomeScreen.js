@@ -9,8 +9,9 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import StorageService from '../services/StorageService';
-import NotificationService from '../services/NotificationService';
+import StorageService from '../services/storage/StorageService';
+import NotificationService from '../services/notifications';
+import NotificationHealthCard from '../components/NotificationHealthCard';
 
 export default function HomeScreen({ navigation }) {
   const [currentMessage, setCurrentMessage] = useState(null);
@@ -29,19 +30,12 @@ export default function HomeScreen({ navigation }) {
       if (regularMessages.length > 0) {
         const randomIndex = Math.floor(Math.random() * regularMessages.length);
         setCurrentMessage(regularMessages[randomIndex]);
-      }
-
-      // Get next scheduled notification
-      const scheduled = await NotificationService.getScheduledNotifications();
-      const wisdomNotifs = scheduled
-        .filter(n => n.notification.id?.startsWith('wisdom-'))
-        .sort((a, b) => a.trigger.timestamp - b.trigger.timestamp);
-
-      if (wisdomNotifs.length > 0) {
-        setNextNotificationTime(new Date(wisdomNotifs[0].trigger.timestamp));
       } else {
-        setNextNotificationTime(null);
+        setCurrentMessage(null);
       }
+
+      const upcoming = await NotificationService.getUpcomingWisdom();
+      setNextNotificationTime(upcoming.length ? new Date(upcoming[0].trigger.timestamp) : null);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -57,33 +51,36 @@ export default function HomeScreen({ navigation }) {
   );
 
   useEffect(() => {
-    // Initialize notifications on first launch
-    NotificationService.initialize();
+    // Create channels, ask for permission, top up the schedule, then show it.
+    NotificationService.initialize()
+      .catch(e => console.warn('Notification init failed:', e))
+      .finally(loadData);
   }, []);
 
   const onRefresh = () => {
     setRefreshing(true);
-    loadData();
+    NotificationService.refresh().finally(loadData);
   };
 
   const handleReschedule = async () => {
     setLoading(true);
-    await NotificationService.scheduleWisdomNotifications();
-    await NotificationService.scheduleNagNotifications();
-    await loadData();
+    try {
+      await NotificationService.rescheduleAll();
+    } finally {
+      await loadData();
+    }
   };
 
   const formatNextNotification = () => {
     if (!nextNotificationTime) return 'Not scheduled';
 
-    const now = new Date();
-    const diff = nextNotificationTime - now;
-
-    if (diff < 0) return 'Pending...';
-
+    const diff = nextNotificationTime - new Date();
     const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const minutes = Math.max(0, Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)));
 
+    if (hours >= 24) {
+      return nextNotificationTime.toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+    }
     if (hours > 0) {
       return `In ${hours}h ${minutes}m`;
     }
@@ -112,6 +109,8 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.settingsButtonText}>⚙️ Settings</Text>
         </TouchableOpacity>
       </View>
+
+      <NotificationHealthCard />
 
       <View style={styles.messageCard}>
         <Text style={styles.messageLabel}>Current Wisdom</Text>
@@ -148,7 +147,7 @@ export default function HomeScreen({ navigation }) {
       {currentMessage && (
         <TouchableOpacity
           style={styles.testButton}
-          onPress={() => NotificationService.sendTestNotification(currentMessage.text)}>
+          onPress={() => NotificationService.sendTest(currentMessage.text)}>
           <Text style={styles.testButtonText}>🧪 Test Notification</Text>
         </TouchableOpacity>
       )}

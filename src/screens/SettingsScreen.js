@@ -8,8 +8,8 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import StorageService from '../services/StorageService';
-import NotificationService from '../services/NotificationService';
+import StorageService from '../services/storage/StorageService';
+import NotificationService from '../services/notifications';
 
 export default function SettingsScreen({ navigation }) {
   const [settings, setSettings] = useState({
@@ -32,7 +32,7 @@ export default function SettingsScreen({ navigation }) {
   };
 
   const loadScheduledCount = async () => {
-    const scheduled = await NotificationService.getScheduledNotifications();
+    const scheduled = await NotificationService.getScheduled();
     setScheduledCount(scheduled.length);
   };
 
@@ -41,12 +41,10 @@ export default function SettingsScreen({ navigation }) {
     setSettings(newSettings);
     await StorageService.saveSettings(newSettings);
 
-    // Reschedule notifications when settings change
-    if (settings.notificationsEnabled) {
-      await NotificationService.scheduleWisdomNotifications();
-      await NotificationService.scheduleNagNotifications();
-      await loadScheduledCount();
-    }
+    // Timing settings affect every queued notification, so rebuild. When wisdom
+    // is disabled this cancels wisdom only; nag reminders keep running.
+    await NotificationService.rescheduleAll();
+    await loadScheduledCount();
   };
 
   const handleClearAllData = () => {
@@ -59,8 +57,8 @@ export default function SettingsScreen({ navigation }) {
           text: 'Clear All',
           style: 'destructive',
           onPress: async () => {
+            await NotificationService.cancelAll();
             await StorageService.clearAll();
-            await NotificationService.cancelAllNotifications();
             Alert.alert('Success', 'All data cleared');
             navigation.reset({
               index: 0,
@@ -73,8 +71,8 @@ export default function SettingsScreen({ navigation }) {
   };
 
   const handleViewScheduled = async () => {
-    const scheduled = await NotificationService.getScheduledNotifications();
-    const wisdom = scheduled.filter(n => n.notification.id?.startsWith('wisdom-'));
+    const scheduled = await NotificationService.getScheduled();
+    const wisdom = await NotificationService.getUpcomingWisdom();
     const nags = scheduled.filter(n => n.notification.id?.startsWith('nag-'));
 
     const formatTime = (timestamp) => {
@@ -113,9 +111,6 @@ export default function SettingsScreen({ navigation }) {
             value={settings.notificationsEnabled}
             onValueChange={(value) => {
               updateSetting('notificationsEnabled', value);
-              if (!value) {
-                NotificationService.cancelAllNotifications();
-              }
             }}
             trackColor={{ false: '#cbd5e1', true: '#a5b4fc' }}
             thumbColor={settings.notificationsEnabled ? '#6366f1' : '#f1f5f9'}

@@ -1,12 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!--
+      Notifee's library manifest adds the permissions it needs (boot receiver,
+      wake lock, etc.) and re-registers scheduled alarms after reboot itself.
+      Reminders use inexact allow-while-idle alarms, so no exact-alarm
+      permission is required. USE_EXACT_ALARM must NOT be declared: Google Play
+      restricts it to alarm-clock and calendar apps.
+    -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
 
     <application
       android:name=".MainApplication"
@@ -29,14 +31,5 @@
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
       </activity>
-      <receiver
-          android:name="com.notetoself.BootReceiver"
-          android:enabled="true"
-          android:exported="true">
-          <intent-filter>
-              <action android:name="android.intent.action.BOOT_COMPLETED" />
-              <action android:name="android.intent.action.QUICKBOOT_POWERON" />
-          </intent-filter>
-      </receiver>
     </application>
 </manifest>

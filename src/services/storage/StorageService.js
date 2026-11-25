@@ -108,9 +108,12 @@ class StorageService {
     }
   }
 
-  async saveState(state) {
+  // Merges into the existing state so independent writers (wisdom scheduler,
+  // nag scheduler, UI) don't clobber each other's keys.
+  async saveState(partial) {
     try {
-      await AsyncStorage.setItem(STORAGE_KEYS.STATE, JSON.stringify(state));
+      const current = await this.getState();
+      await AsyncStorage.setItem(STORAGE_KEYS.STATE, JSON.stringify({ ...current, ...partial }));
       return true;
     } catch (error) {
       console.error('Error saving state:', error);

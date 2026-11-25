@@ -9,8 +9,8 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import StorageService from '../services/StorageService';
-import NotificationService from '../services/NotificationService';
+import StorageService from '../services/storage/StorageService';
+import NotificationService from '../services/notifications';
 
 export default function LibraryScreen({ navigation }) {
   const [messages, setMessages] = useState([]);
@@ -81,16 +81,11 @@ export default function LibraryScreen({ navigation }) {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            let hadNagMessage = false;
             for (const id of selectedIds) {
-              const msg = messages.find(m => m.id === id);
-              if (msg?.isNagMe) hadNagMessage = true;
               await StorageService.deleteMessage(id);
             }
 
-            if (hadNagMessage) {
-              await NotificationService.scheduleNagNotifications();
-            }
+            await NotificationService.rescheduleAll();
 
             setSelectedIds(new Set());
             setIsSelectionMode(false);
@@ -112,9 +107,7 @@ export default function LibraryScreen({ navigation }) {
           style: 'destructive',
           onPress: async () => {
             await StorageService.deleteMessage(message.id);
-            if (message.isNagMe) {
-              await NotificationService.scheduleNagNotifications();
-            }
+            await NotificationService.rescheduleAll();
             loadMessages();
           },
         },

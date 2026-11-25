@@ -9,8 +9,9 @@ import {
   Switch,
   Alert,
 } from 'react-native';
-import StorageService from '../services/StorageService';
-import NotificationService from '../services/NotificationService';
+import StorageService from '../services/storage/StorageService';
+import NotificationService from '../services/notifications';
+import { MIN_NAG_INTERVAL_MINUTES } from '../services/notifications/NagScheduler';
 
 export default function EditMessageScreen({ navigation, route }) {
   const existingMessage = route.params?.message;
@@ -36,8 +37,8 @@ export default function EditMessageScreen({ navigation, route }) {
       return;
     }
 
-    if (isNagMe && (!nagIntervalMinutes || parseInt(nagIntervalMinutes) < 1)) {
-      Alert.alert('Error', 'Please enter a valid interval (minimum 1 minute)');
+    if (isNagMe && (!nagIntervalMinutes || parseInt(nagIntervalMinutes, 10) < MIN_NAG_INTERVAL_MINUTES)) {
+      Alert.alert('Error', `Please enter a valid interval (minimum  minutes)`);
       return;
     }
 
@@ -57,11 +58,9 @@ export default function EditMessageScreen({ navigation, route }) {
         await StorageService.addMessage(messageData);
       }
 
-      // Reschedule notifications
-      await NotificationService.scheduleWisdomNotifications();
-      if (isNagMe) {
-        await NotificationService.scheduleNagNotifications();
-      }
+      // Message text is baked into scheduled notifications, so rebuild both queues
+      // (also cancels nags when "Nag me" was switched off).
+      await NotificationService.rescheduleAll();
 
       navigation.goBack();
     } catch (error) {
@@ -188,9 +187,7 @@ export default function EditMessageScreen({ navigation, route }) {
                     style: 'destructive',
                     onPress: async () => {
                       await StorageService.deleteMessage(existingMessage.id);
-                      if (existingMessage.isNagMe) {
-                        await NotificationService.scheduleNagNotifications();
-                      }
+                      await NotificationService.rescheduleAll();
                       navigation.goBack();
                     },
                   },
