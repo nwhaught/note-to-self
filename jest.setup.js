@@ -1,3 +1,4 @@
+/* eslint-env jest */
 // Mock notifee with proper default export
 jest.mock('@notifee/react-native', () => {
   const mockNotifee = {
@@ -30,37 +31,9 @@ jest.mock('@notifee/react-native', () => {
   };
 });
 
-// Mock React Native modules
-jest.mock('react-native', () => ({
-  Platform: {
-    OS: 'android',
-    Version: 33,
-    select: jest.fn((obj) => obj.android),
-  },
-  PermissionsAndroid: {
-    request: jest.fn(() => Promise.resolve('granted')),
-    PERMISSIONS: {
-      POST_NOTIFICATIONS: 'android.permission.POST_NOTIFICATIONS',
-    },
-    RESULTS: {
-      GRANTED: 'granted',
-      DENIED: 'denied',
-    },
-  },
-  NativeModules: {},
-  NativeEventEmitter: jest.fn(),
-}));
+// React Native itself is mocked by the react-native Jest preset.
 
-// Mock AsyncStorage
-jest.mock('@react-native-async-storage/async-storage', () => ({
-  default: {
-    setItem: jest.fn(() => Promise.resolve()),
-    getItem: jest.fn(() => Promise.resolve(null)),
-    removeItem: jest.fn(() => Promise.resolve()),
-    clear: jest.fn(() => Promise.resolve()),
-    getAllKeys: jest.fn(() => Promise.resolve([])),
-    multiGet: jest.fn(() => Promise.resolve([])),
-    multiSet: jest.fn(() => Promise.resolve()),
-    multiRemove: jest.fn(() => Promise.resolve()),
-  },
-}));
+// Official in-memory AsyncStorage mock
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);

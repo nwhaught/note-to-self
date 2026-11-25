@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ backup / device-transfer rules.
+
+  Only the user's notes and settings (AsyncStorage) are backed up. Notifee's
+  trigger database is deliberately left out: restored trigger records would
+  have no OS alarms behind them, and the scheduler would treat those days as
+  already covered. Instead, the app rebuilds its schedule on first launch.
+
+  Listing <include> elements means everything not listed is excluded.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="database" path="RKStorage" />
+        <include domain="database" path="RKStorage-journal" />
+        <include domain="database" path="AsyncStorage" />
+        <include domain="database" path="AsyncStorage-wal" />
+        <include domain="database" path="AsyncStorage-shm" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="database" path="RKStorage" />
+        <include domain="database" path="RKStorage-journal" />
+        <include domain="database" path="AsyncStorage" />
+        <include domain="database" path="AsyncStorage-wal" />
+        <include domain="database" path="AsyncStorage-shm" />
+    </device-transfer>
+</data-extraction-rules>

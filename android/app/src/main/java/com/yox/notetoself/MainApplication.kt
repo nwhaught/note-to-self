@@ -1,4 +1,4 @@
-package com.notetoself
+package com.yox.notetoself
 
 import android.app.Application
 import com.facebook.react.PackageList

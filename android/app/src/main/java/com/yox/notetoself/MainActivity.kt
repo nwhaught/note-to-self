@@ -1,4 +1,4 @@
-package com.notetoself
+package com.yox.notetoself
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

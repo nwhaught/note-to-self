@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import StorageService from '../services/storage/StorageService';
 import NotificationService from '../services/notifications';
+import { sendFeedback } from '../services/feedback';
+import { APP_NAME, APP_VERSION, FEEDBACK_EMAIL } from '../config/appInfo';
 
 export default function SettingsScreen({ navigation }) {
   const [settings, setSettings] = useState({
@@ -240,6 +242,24 @@ export default function SettingsScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>About</Text>
+        {FEEDBACK_EMAIL && (
+          <TouchableOpacity
+            style={styles.infoButton}
+            onPress={() =>
+              sendFeedback().catch(() =>
+                Alert.alert('No email app', `Please email ${FEEDBACK_EMAIL}`),
+              )
+            }>
+            <Text style={styles.infoButtonText}>✉️ Send Feedback</Text>
+          </TouchableOpacity>
+        )}
+        <Text style={styles.versionText}>
+          {APP_NAME} v{APP_VERSION}
+        </Text>
+      </View>
+
       <View style={styles.dangerSection}>
         <Text style={styles.sectionTitle}>Danger Zone</Text>
         <TouchableOpacity
@@ -387,6 +407,12 @@ const styles = StyleSheet.create({
   },
   gapButtonTextActive: {
     color: '#fff',
+  },
+  versionText: {
+    marginTop: 12,
+    fontSize: 13,
+    color: '#94a3b8',
+    textAlign: 'center',
   },
   infoButton: {
     backgroundColor: '#fff',
